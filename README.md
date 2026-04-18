@@ -62,3 +62,54 @@ python -m woodland_pipeline.ingest.run_analysis_worker --enqueue --no-poll
 - The pipeline defaults to SQLite (`woodland_chess.db`) when `DATABASE_URL` is not set.
 - PostgreSQL is recommended for concurrent workers.
 - Queue claiming uses `FOR UPDATE SKIP LOCKED` on PostgreSQL.
+
+## Deploy to Railway (polling analysis processor)
+
+This repo is configured for Railway Config-as-Code + Docker build so Stockfish is available at runtime.
+
+Included deployment files:
+- `railway.toml` (builder + start command)
+- `Dockerfile` (installs Python deps and Stockfish)
+- `.dockerignore`
+
+### 1. Create Railway services
+
+- Create a new Railway project from this GitHub repo.
+- Add a **PostgreSQL** service in Railway.
+- Keep this worker as a **private service** (no public domain required).
+
+### 2. Set environment variables
+
+Set these on the worker service:
+- `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
+- `CHESS_COM_USERNAMES` = `alice,bob` (or your username list)
+- `ANALYSIS_DEPTH` = `20` (optional)
+- `ANALYSIS_THREADS` = `1` (optional)
+
+Optional overrides:
+- `STOCKFISH_PATH=/usr/games/stockfish`
+- `CHESS_COM_USER_AGENT=woodland-chess-pipeline/0.1`
+
+### 3. Deploy
+
+Push to `main` (or trigger a manual deploy).
+
+This service starts with:
+
+```bash
+python -m woodland_pipeline.ingest.run_analysis_worker
+```
+
+That command runs in polling mode by default, continuously checking the queue for new pending jobs.
+
+### 4. Enqueue jobs
+
+This worker only processes queued jobs. Enqueue jobs using one of these patterns:
+
+- one-off local/CLI run:
+
+```bash
+python -m woodland_pipeline.ingest.run_analysis_worker --enqueue-only
+```
+
+- separate Railway service or cron job that runs enqueue logic.
