@@ -1,0 +1,29 @@
+[project]
+name = "woodland-chess-pipeline"
+version = "0.1.0"
+description = "Standalone ingest and Stockfish analysis pipeline for Woodland Chess"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "sqlalchemy>=2.0.29",
+  "psycopg[binary]>=3.2.0",
+  "python-chess>=1.999",
+  "pydantic-settings>=2.8.0",
+  "tqdm>=4.66.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["woodland_pipeline*"]
+
+[tool.setuptools.package-data]
+woodland_pipeline = ["data/openings/*.tsv"]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
