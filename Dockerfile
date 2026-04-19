@@ -22,7 +22,7 @@ RUN curl -fsSL "https://github.com/official-stockfish/Stockfish/releases/downloa
     && rm -f /tmp/stockfish.tar
 
 COPY pyproject.toml README.md ./
-COPY woodland_pipeline ./woodland_pipeline
+COPY stockfish_pipeline ./stockfish_pipeline
 COPY start_workers.py ./
 
 RUN pip install --no-cache-dir .
