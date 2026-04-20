@@ -4,8 +4,8 @@ Stockfish analysis pipeline for Woodland Chess.
 
 This repository contains:
 - Chess.com ingest pipeline
-- Stockfish centipawn analysis worker
-- Analysis job queueing
+- RunPod job submitter for Stockfish analysis
+- Analysis job queueing and submission
 - SQLAlchemy models and DB bootstrap
 - Lichess opening-book TSV data for opening labeling
 
@@ -22,8 +22,9 @@ cp .env.example .env
 
 Configure `.env` with at least:
 - `CHESS_COM_USERNAMES` (comma-separated)
-- `DATABASE_URL` (optional; defaults to local SQLite)
-- `STOCKFISH_PATH` (optional; auto-detected if available on PATH)
+- `DATABASE_URL`
+- `RUNPOD_ENDPOINT_ID`
+- `RUNPOD_API_KEY`
 
 ## Sync games from Chess.com
 
@@ -37,36 +38,33 @@ python -m stockfish_pipeline.ingest.run_sync
 python start_workers.py
 ```
 
-Or invoke directly:
-
-```bash
-python -m stockfish_pipeline.ingest.run_analysis_worker --enqueue --no-poll
-```
-
 ### Environment variables
 
 | Variable | Description | Default |
 |---|---|---|
-| `STOCKFISH_PATH` | Path to Stockfish binary | auto-detect |
-| `ANALYSIS_DEPTH` | Analysis depth | `20` |
-| `ANALYSIS_THREADS` | Threads per game | `1` |
-| `ANALYSIS_HASH_MB` | Stockfish hash table size (MB) | `256` |
-| `SF_ENQUEUE` | Enqueue unanalyzed games before starting | — |
-| `SF_ENQUEUE_ONLY` | Enqueue jobs and exit | — |
-| `SF_ENQUEUE_LIMIT` | Max games to enqueue | — |
-| `SF_LIMIT` | Stop after N games | — |
-| `SF_NO_POLL` | Exit when queue empty | — |
-| `SF_POLL_INTERVAL` | Seconds between queue checks | `5` |
+| `RUNPOD_ENDPOINT_ID` | RunPod serverless endpoint ID | required |
+| `RUNPOD_API_KEY` | RunPod API key | required |
+| `DATABASE_URL` | Postgres connection string | required |
+| `ANALYSIS_DEPTH` | Analysis depth forwarded to RunPod worker payload | `20` |
+| `ANALYSIS_THREADS` | Threads forwarded to RunPod worker payload | `8` |
+| `ANALYSIS_HASH_MB` | Hash MB forwarded to RunPod worker payload | `2048` |
+| `SF_POLL_INTERVAL` | Seconds between submission sweeps | `60` |
 
 ## Deploy to Railway
 
 - `railway.toml` — builder + start command (`python start_workers.py`)
-- `Dockerfile` — installs Python deps and Stockfish sf_18 (avx2)
+- `Dockerfile` — installs Python deps and runs the RunPod submitter
 
 Required Railway env vars:
 - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
-- `CHESS_COM_USERNAMES`
-- `SF_ENQUEUE=true` (enqueue unanalyzed games on startup)
+- `RUNPOD_ENDPOINT_ID`
+- `RUNPOD_API_KEY`
+
+Optional Railway env vars:
+- `ANALYSIS_DEPTH`
+- `ANALYSIS_THREADS`
+- `ANALYSIS_HASH_MB`
+- `SF_POLL_INTERVAL`
 
 ## How Stockfish calculations work
 

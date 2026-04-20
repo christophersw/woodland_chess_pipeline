@@ -1,9 +1,9 @@
 """
 job_submitter.py — Submits pending AnalysisJob rows to the RunPod Serverless endpoint.
 
-Replaces the local Stockfish worker loop (run_analysis_worker.py) when
-RUNPOD_ENDPOINT_ID is set.  The RunPod worker writes results directly to
-PostgreSQL, so this process is fire-and-forget: it submits jobs and moves on.
+This service uses RunPod for analysis execution. The RunPod worker writes
+results directly to PostgreSQL, so this process is fire-and-forget: it
+submits jobs and moves on.
 
 Environment variables (all required unless noted):
     RUNPOD_ENDPOINT_ID  — Endpoint ID from the RunPod dashboard
