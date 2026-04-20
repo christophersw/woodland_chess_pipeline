@@ -27,6 +27,10 @@ def main() -> None:
         log.error("RUNPOD_ENDPOINT_ID is not set. This service requires a RunPod endpoint.")
         sys.exit(1)
 
+    if not os.environ.get("RUNPOD_API_KEY"):
+        log.error("RUNPOD_API_KEY is not set. This service requires a RunPod API key.")
+        sys.exit(1)
+
     log.info("Starting RunPod job submitter")
     from stockfish_pipeline.ingest.job_submitter import run_submitter_loop
     run_submitter_loop()
