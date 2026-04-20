@@ -1,16 +1,17 @@
 """Worker startup script for the Stockfish analysis pipeline.
 
-All worker flags are read from environment variables.
+Requires RUNPOD_ENDPOINT_ID and RUNPOD_API_KEY to be set.
 
-Envs:  STOCKFISH_PATH, ANALYSIS_DEPTH, ANALYSIS_THREADS, ANALYSIS_HASH_MB,
-       SF_ENQUEUE, SF_ENQUEUE_ONLY, SF_ENQUEUE_LIMIT,
-       SF_LIMIT, SF_NO_POLL, SF_POLL_INTERVAL
+Optional env vars forwarded to the RunPod worker:
+    ANALYSIS_DEPTH     — Stockfish search depth (default: 20)
+    ANALYSIS_THREADS   — Threads per analysis (default: 8)
+    ANALYSIS_HASH_MB   — Hash table size in MB (default: 2048)
+    SF_POLL_INTERVAL   — Seconds between submission sweeps (default: 60)
 """
 from __future__ import annotations
 
 import logging
 import os
-import subprocess
 import sys
 
 logging.basicConfig(
@@ -21,69 +22,14 @@ logging.basicConfig(
 log = logging.getLogger("start_workers")
 
 
-def _env(key: str, default: str = "") -> str:
-    return os.environ.get(key, default)
-
-
-def _flag(key: str) -> bool:
-    return _env(key).lower() in ("1", "true", "yes")
-
-
-def build_cmd() -> list[str]:
-    cmd = [sys.executable, "-m", "stockfish_pipeline.ingest.run_analysis_worker"]
-
-    stockfish_path = _env("STOCKFISH_PATH")
-    if stockfish_path:
-        cmd += ["--stockfish", stockfish_path]
-
-    depth = _env("ANALYSIS_DEPTH")
-    if depth:
-        cmd += ["--depth", depth]
-
-    threads = _env("ANALYSIS_THREADS")
-    if threads:
-        cmd += ["--threads", threads]
-
-    hash_mb = _env("ANALYSIS_HASH_MB")
-    if hash_mb:
-        cmd += ["--hash", hash_mb]
-
-    if _flag("SF_ENQUEUE_ONLY"):
-        cmd.append("--enqueue-only")
-    elif _flag("SF_ENQUEUE"):
-        cmd.append("--enqueue")
-
-    enqueue_limit = _env("SF_ENQUEUE_LIMIT")
-    if enqueue_limit:
-        cmd += ["--enqueue-limit", enqueue_limit]
-
-    limit = _env("SF_LIMIT")
-    if limit:
-        cmd += ["--limit", limit]
-
-    if _flag("SF_NO_POLL"):
-        cmd.append("--no-poll")
-
-    poll_interval = _env("SF_POLL_INTERVAL")
-    if poll_interval:
-        cmd += ["--poll-interval", poll_interval]
-
-    return cmd
-
-
 def main() -> None:
-    # If a RunPod endpoint is configured, use the lightweight job submitter
-    # instead of running Stockfish locally.
-    if _env("RUNPOD_ENDPOINT_ID"):
-        log.info("RUNPOD_ENDPOINT_ID detected — starting RunPod job submitter")
-        from stockfish_pipeline.ingest.job_submitter import run_submitter_loop
-        run_submitter_loop()
-        return
+    if not os.environ.get("RUNPOD_ENDPOINT_ID"):
+        log.error("RUNPOD_ENDPOINT_ID is not set. This service requires a RunPod endpoint.")
+        sys.exit(1)
 
-    cmd = build_cmd()
-    log.info("Starting Stockfish worker: %s", " ".join(cmd))
-    proc = subprocess.run(cmd)
-    sys.exit(proc.returncode)
+    log.info("Starting RunPod job submitter")
+    from stockfish_pipeline.ingest.job_submitter import run_submitter_loop
+    run_submitter_loop()
 
 
 if __name__ == "__main__":
